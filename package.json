@@ -1,0 +1,26 @@
+{
+  "name": "chambaya-backend",
+  "version": "3.0.0",
+  "description": "Backend de ChambaYa: API REST en Node + TypeScript con PostgreSQL",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "dev:memoria": "tsx watch src/server.ts --memoria",
+    "start:memoria": "tsx src/server.ts --memoria",
+    "build": "tsc",
+    "start:prod": "node dist/server.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
