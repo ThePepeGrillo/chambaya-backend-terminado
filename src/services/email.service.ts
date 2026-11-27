@@ -5,8 +5,16 @@ export interface DestinoCorreo {
   correo: string;
 }
 
+export interface DatosAceptacionPostulacion {
+  nombreTrabajador: string;
+  tituloOferta: string;
+  fechaOferta: string;
+  ubicacion: string;
+}
+
 export interface EmailService {
   enviarRestablecimiento(destino: DestinoCorreo, enlace: string): Promise<void>;
+  enviarAceptacionPostulacion(destino: DestinoCorreo, datos: DatosAceptacionPostulacion): Promise<void>;
 }
 
 // Para desarrollo y demos: no envía nada, escribe el enlace en la terminal del backend
@@ -15,6 +23,11 @@ export class ConsoleEmailService implements EmailService {
     console.log(`\n[correo simulado] Para: ${destino.correo}`);
     console.log(`Enlace para restablecer la contraseña (vale 30 minutos):\n${enlace}\n`);
   }
+  async enviarAceptacionPostulacion(destino: DestinoCorreo, datos: DatosAceptacionPostulacion): Promise<void> {
+    console.log(`\\n[correo simulado] Aviso de postulación aceptada para: ${destino.correo}`);
+    console.log(`Candidato: ${datos.nombreTrabajador} | Oferta: ${datos.tituloOferta} | Fecha: ${datos.fechaOferta} | Lugar: ${datos.ubicacion}\\n`);
+  }
+
 }
 
 const escaparHtml = (texto: string) => texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -40,6 +53,25 @@ export class ResendEmailService implements EmailService {
     });
     if (!respuesta.ok) throw new Error(`Resend respondió ${respuesta.status}`);
   }
+  async enviarAceptacionPostulacion(destino: DestinoCorreo, datos: DatosAceptacionPostulacion): Promise<void> {
+    const nombre = escaparHtml(datos.nombreTrabajador);
+    const oferta = escaparHtml(datos.tituloOferta);
+    const fecha = escaparHtml(datos.fechaOferta);
+    const ubicacion = escaparHtml(datos.ubicacion);
+    const respuesta = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: this.remitente,
+        to: [destino.correo],
+        subject: `ChambaYa: postulación aceptada para "${datos.tituloOferta}"`,
+        text: `Un empleador aceptó una postulación en ChambaYa.\\n\\nCandidato: ${datos.nombreTrabajador}\\nOferta: ${datos.tituloOferta}\\nFecha del trabajo: ${datos.fechaOferta}\\nLugar: ${datos.ubicacion}`,
+        html: `<h2>¡Nueva postulación aceptada!</h2><p>Un empleador aceptó una postulación en ChambaYa.</p><ul><li><strong>Candidato:</strong> ${nombre}</li><li><strong>Oferta:</strong> ${oferta}</li><li><strong>Fecha del trabajo:</strong> ${fecha}</li><li><strong>Lugar:</strong> ${ubicacion}</li></ul>`,
+      }),
+    });
+    if (!respuesta.ok) throw new Error(`Resend respondió ${respuesta.status}`);
+  }
+
 }
 
 export function crearEmailService(config: AppConfig): EmailService {

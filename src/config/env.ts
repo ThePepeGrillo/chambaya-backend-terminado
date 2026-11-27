@@ -8,6 +8,7 @@ export interface AppConfig {
   completarSinEsperar: boolean; // solo para demos y pruebas: permite confirmar el trabajo antes de su fecha
   resendApiKey?: string; // si existe, los correos se envían de verdad con Resend
   emailFrom?: string;
+  emailNotificacionesTo?: string; // correo del administrador que recibe avisos de aceptaciones
   exponerEnlaceRecuperacion: boolean; // solo en desarrollo, cuando no hay proveedor de correo
 }
 
@@ -42,6 +43,7 @@ export function loadConfig(argv: string[] = process.argv): AppConfig {
     completarSinEsperar: process.env.COMPLETAR_SIN_ESPERAR === "true",
     resendApiKey: process.env.RESEND_API_KEY || undefined,
     emailFrom: process.env.EMAIL_FROM || undefined,
+    emailNotificacionesTo: process.env.EMAIL_NOTIFICACIONES_TO?.trim() || undefined,
     exponerEnlaceRecuperacion: process.env.NODE_ENV !== "production" && !process.env.RESEND_API_KEY,
   };
 }

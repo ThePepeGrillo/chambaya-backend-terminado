@@ -25,7 +25,7 @@ export function createApp(config: AppConfig, db: Db, correos: EmailService = cre
   const servicios = {
     auth: new AuthService(db, tokens, correos, config.frontendUrl, config.exponerEnlaceRecuperacion),
     ofertas: new OfertaService(db),
-    postulaciones: new PostulacionService(db, { completarSinEsperar: config.completarSinEsperar }),
+    postulaciones: new PostulacionService(db, { completarSinEsperar: config.completarSinEsperar, emailNotificacionesTo: config.emailNotificacionesTo }, correos),
     calificaciones: new CalificacionService(db),
   };
 

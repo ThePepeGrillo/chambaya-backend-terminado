@@ -3,16 +3,19 @@ import { ConflictError, ForbiddenError, NotFoundError } from "../errors/app-erro
 import { AccionesPostulacion, EstadoPostulacion, PostulacionDelTrabajador, Postulante } from "../models/postulacion";
 import { UsuarioActual } from "../models/usuario";
 import { Db } from "../repositories/interfaces";
+import { EmailService } from "./email.service";
 import { cargarParticipacion } from "./participacion";
 
 interface OpcionesPostulaciones {
   completarSinEsperar: boolean; // solo para demos y pruebas
+  emailNotificacionesTo?: string;
 }
 
 export class PostulacionService {
   constructor(
     private readonly db: Db,
     private readonly opciones: OpcionesPostulaciones = { completarSinEsperar: false },
+    private readonly correos?: EmailService,
   ) {}
 
   // Se puede confirmar desde el inicio del día del trabajo en la zona horaria de Colombia.
@@ -75,7 +78,7 @@ export class PostulacionService {
   }
 
   async cambiarEstado(id: number, empleadorId: number, dto: CambiarEstadoDto) {
-    return this.db.transaction(async (r) => {
+    const resultado = await this.db.transaction(async (r) => {
       const previa = await r.postulaciones.porId(id);
       if (!previa) throw new NotFoundError("Postulación no encontrada");
 
@@ -118,11 +121,33 @@ export class PostulacionService {
         );
       }
 
-      return {
+      const respuesta = {
         postulacion: { ...postulacion, estado: dto.estado },
         oferta: { ...oferta, estado: estadoOferta, aceptados },
       };
+      const correo = dto.estado === "aceptada"
+        ? {
+            nombreTrabajador: (await r.usuarios.nombrePorId(postulacion.trabajadorId)) ?? "Un trabajador",
+            tituloOferta: oferta.titulo,
+            fechaOferta: oferta.fecha,
+            ubicacion: oferta.ubicacion,
+          }
+        : null;
+      return { respuesta, correo };
     });
+
+    // La transacción ya terminó: si Resend falla, la aceptación permanece guardada.
+    if (resultado.correo && this.opciones.emailNotificacionesTo && this.correos) {
+      try {
+        await this.correos.enviarAceptacionPostulacion(
+          { nombre: "Administrador ChambaYa", correo: this.opciones.emailNotificacionesTo },
+          resultado.correo,
+        );
+      } catch (error) {
+        console.error("[ChambaYa] No se pudo enviar el aviso de aceptación por correo:", error);
+      }
+    }
+    return resultado.respuesta;
   }
 
   async cancelar(id: number, trabajadorId: number, dto: CancelarDto) {
